@@ -20,7 +20,6 @@ class StatsView @JvmOverloads constructor(
     defStyleRes: Int = 0
 ) : View(context, attributeSet, defStyleAttr, defStyleRes) {
 
-
     var data: List<Float> = emptyList()
         set(value) {
             field = value
