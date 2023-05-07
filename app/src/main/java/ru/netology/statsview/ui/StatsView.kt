@@ -38,14 +38,6 @@ class StatsView @JvmOverloads constructor(
         strokeCap = Paint.Cap.ROUND
     })
 
-    private val paintLast = Paint(Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        strokeWidth = lineWidth.toFloat()
-        style = Paint.Style.STROKE
-        strokeJoin = Paint.Join.MITER
-
-        strokeCap = Paint.Cap.ROUND
-    })
-
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         textAlign = Paint.Align.CENTER
@@ -69,7 +61,6 @@ class StatsView @JvmOverloads constructor(
         if (data.isEmpty()) {
             return
         }
-        val last = data.filterIndexed { index, _ -> index < 3 }
 
         var startFrom = -90F
         for ((index, datum) in data.withIndex()) {
@@ -79,9 +70,8 @@ class StatsView @JvmOverloads constructor(
             startFrom += angle
         }
 
-        paintLast.xfermode
-        paintLast.color = colors.lastOrNull() ?: generateRandomColor()
-        canvas.drawArc(oval, startFrom, countAngle(data.last()), false, paintLast)
+        paint.color = colors.firstOrNull() ?: generateRandomColor()
+        canvas.drawArc(oval, startFrom, 1F, false, paint)
 
         canvas.drawText(
             "%.2f%%".format(data.sum() / 20),
