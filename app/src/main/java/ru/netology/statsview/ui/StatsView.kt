@@ -1,5 +1,6 @@
 package ru.netology.statsview.ui
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -8,6 +9,7 @@ import android.graphics.RectF
 import android.graphics.Xfermode
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.LinearInterpolator
 import ru.netology.statsview.utils.AndroidUtils
 import kotlin.math.min
 import kotlin.random.Random
@@ -20,29 +22,16 @@ class StatsView @JvmOverloads constructor(
     defStyleRes: Int = 0
 ) : View(context, attributeSet, defStyleAttr, defStyleRes) {
 
-    var data: List<Float> = emptyList()
-        set(value) {
-            field = value
-            invalidate()
-        }
+
+    private var progress = 0F
+    private var valueAnimator: ValueAnimator? = null
     private var radius = 0F
     private var center = PointF()
     private var oval = RectF()
     private var lineWidth = AndroidUtils.dp(context, 5).toFloat()
     private var fontSize = AndroidUtils.dp(context, 40).toFloat()
     private var colors = emptyList<Int>()
-    private val paint = Paint(Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        strokeWidth = lineWidth.toFloat()
-        style = Paint.Style.STROKE
-        strokeJoin = Paint.Join.MITER
-        strokeCap = Paint.Cap.ROUND
-    })
 
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        textAlign = Paint.Align.CENTER
-        textSize = fontSize
-    }
 
     init {
         context.withStyledAttributes(attributeSet, R.styleable.StatsView) {
@@ -57,6 +46,25 @@ class StatsView @JvmOverloads constructor(
         }
     }
 
+    private val paint = Paint(Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        strokeWidth = lineWidth.toFloat()
+        style = Paint.Style.STROKE
+        strokeJoin = Paint.Join.MITER
+        strokeCap = Paint.Cap.ROUND
+    })
+
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        textAlign = Paint.Align.CENTER
+        textSize = fontSize
+    }
+
+    var data: List<Float> = emptyList()
+        set(value) {
+            field = value
+            update()
+        }
+
     override fun onDraw(canvas: Canvas) {
         if (data.isEmpty()) {
             return
@@ -66,12 +74,12 @@ class StatsView @JvmOverloads constructor(
         for ((index, datum) in data.withIndex()) {
             val angle = countAngle(datum)
             paint.color = colors.getOrElse(index) { generateRandomColor() }
-            canvas.drawArc(oval, startFrom, angle, false, paint)
+            canvas.drawArc(oval, startFrom + (360 * progress), angle * progress, false, paint)
             startFrom += angle
         }
 
         paint.color = colors.firstOrNull() ?: generateRandomColor()
-        canvas.drawArc(oval, startFrom, 1F, false, paint)
+        canvas.drawArc(oval, startFrom, 1F * progress, false, paint)
 
         canvas.drawText(
             "%.2f%%".format(data.sum() / 20),
@@ -82,7 +90,6 @@ class StatsView @JvmOverloads constructor(
 
     }
 
-    private fun generateRandomColor() = Random.nextInt(0xFF000000.toInt(), 0xFFFFFFFF.toInt())
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         radius = min(w, h) / 2F - lineWidth
@@ -95,5 +102,25 @@ class StatsView @JvmOverloads constructor(
         )
     }
 
+    private fun update() {
+        valueAnimator?.let {
+            it.removeAllListeners()
+            it.cancel()
+        }
+        progress = 0F
+
+        valueAnimator = ValueAnimator.ofFloat(0F, 1F).apply {
+            addUpdateListener { anim ->
+                progress = anim.animatedValue as Float
+                invalidate()
+            }
+            duration = 1000
+            interpolator = LinearInterpolator()
+        }.also { it.start() }
+    }
+
     private fun countAngle(float: Float) = float / 5 * 0.0025F * 360F
+
+    private fun generateRandomColor() = Random.nextInt(0xFF000000.toInt(), 0xFFFFFFFF.toInt())
+
 }
